@@ -132,8 +132,6 @@ static verifyManifestWithTEE(manifest: any): {
   };
 }
 
-// Removed duplicate verifyManifest stub implementation
-
   
   // Verify manifest
   static verifyManifest(manifest: BehavioralC2PAManifest): {

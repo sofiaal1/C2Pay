@@ -136,3 +136,11 @@ export interface Claim {
     attestationChain?: string[];
   };
 }
+
+export interface BehavioralC2PAManifest {
+  version: string;
+  claim: Claim;
+  teeAttestation: TEEAttestation;
+  signature: string;
+  publicKey: string;
+}
