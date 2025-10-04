@@ -52,7 +52,7 @@ export default function StoreScreen({ navigation }: any) {
         <Text variant="headlineMedium" style={styles.title}>
           🛍️ TechStore
         </Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Cart')}>
+        <TouchableOpacity onPress={() => navigation.navigate('Shop', {screen: 'Cart'})}>
           <View>
             <IconButton icon="cart" size={28} />
             {cartCount > 0 && (

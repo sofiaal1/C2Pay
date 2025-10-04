@@ -24,7 +24,7 @@ function ShopStack() {
     <Stack.Navigator>
       <Stack.Screen name='Store' component={StoreScreen} options={{ headerShown: false }} />
       <Stack.Screen name='Cart' component={CartScreen} />
-      <Stack.Screen name='Checkout' component={CheckoutScreen} />
+      <Stack.Screen name='Checkout' component={CheckoutScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -46,7 +46,10 @@ export default function App() {
                 iconName = focused ? 'shield-checkmark' : 'shield-checkmark-outline';
               } else if (route.name === 'Dashboard') {
                 iconName = focused ? 'stats-chart' : 'stats-chart-outline';
+              } else if (route.name === 'Shop') {
+                iconName = focused ? 'storefront' : 'storefront-outline';
               }
+
 
               return <Ionicons name={iconName} size={size} color={color} />;
             },
@@ -73,16 +76,6 @@ export default function App() {
             name="Dashboard" 
             component={DashboardScreen}
             options={{ title: 'Analytics' }}
-          />
-          <Tab.Screen 
-            name="Store" 
-            component={StoreScreen}
-            options={{ title: 'Shop' }}
-          />
-          <Tab.Screen 
-            name="Cart" 
-            component={CartScreen}
-            options={{ title: 'Cart' }}
           />
           <Tab.Screen name="Shop" component={ShopStack} />
         </Tab.Navigator>

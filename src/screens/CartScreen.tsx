@@ -38,7 +38,7 @@ export default function CartScreen({ navigation }: any) {
       Alert.alert('Empty Cart', 'Please add items to your cart first');
       return;
     }
-    navigation.navigate('Checkout');
+    navigation.navigate('Shop', { screen: 'Checkout' });
   };
 
   if (cartItems.length === 0) {
