@@ -60,28 +60,7 @@ export interface ActiveBiometric {
 // C2PA Manifest
 export interface BehavioralC2PAManifest {
   version: string;
-  claim: {
-    payment: {
-      amount: number;
-      currency: string;
-      merchant: string;
-      orderId: string;
-    };
-    behavioral: {
-      riskScore: number;
-      keystroke?: KeystrokeProfile;
-      mouse?: MouseProfile;
-      session?: SessionPattern;
-    };
-    passiveBiometrics?: PassiveBiometrics;
-    activeBiometric?: ActiveBiometric;
-    device: {
-      model: string;
-      os: string;
-      fingerprint: string;
-    };
-    timestamp: string;
-  };
+  claim: Claim; // ← single line change
   teeAttestation: TEEAttestation;
   signature: string;
   publicKey: string;
@@ -97,4 +76,63 @@ export interface RiskAnalysis {
   };
   redFlags: string[];
   authMethodsUsed: string[];
+}
+
+export interface EnhancedTEEAttestation extends TEEAttestation {
+  teeProof: {
+    capabilities: {
+      hasSecureEnclave: boolean;
+      hasStrongBox: boolean;
+      biometricHardware: boolean;
+      keyStorageLevel: 'software' | 'hardware' | 'strongbox';
+    };
+    integrity: {
+      valid: boolean;
+      stillInTEE: boolean;
+      tamperDetected: boolean;
+    };
+    storageDetails: {
+      location: string;
+      extractable: boolean;
+      requiresBiometric: boolean;
+    };
+    attestationChain: string[];
+  };
+  integrityCheck: {
+    valid: boolean;
+    stillInTEE: boolean;
+    tamperDetected: boolean;
+  };
+}
+
+export interface Claim {
+  payment: {
+    amount: number;
+    currency: string;
+    merchant: string;
+    orderId: string;
+  };
+  behavioral: {
+    riskScore: number;
+    keystroke?: KeystrokeProfile;
+    mouse?: MouseProfile;
+    session?: SessionPattern;
+  };
+  passiveBiometrics?: PassiveBiometrics;
+  activeBiometric?: ActiveBiometric;
+  device: {
+    model: string;
+    os: string;
+    fingerprint: string;
+  };
+  timestamp: string;
+
+  // ADD THIS:
+  teeDetails?: {
+    hardwareBacked: boolean;
+    storageLevel?: string;
+    keyIntegrity: boolean;
+    biometricCapable?: boolean;
+    attestationChain?: string[];
+  };
 }

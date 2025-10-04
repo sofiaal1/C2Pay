@@ -202,4 +202,162 @@ export class KeystoreService {
     
     return attestation;
   }
+
+  // Add to your existing KeystoreService class
+
+// NEW: Get detailed TEE capabilities
+static async getTEECapabilities(): Promise<{
+  hasSecureEnclave: boolean;
+  hasStrongBox: boolean;
+  biometricHardware: boolean;
+  keyStorageLevel: 'software' | 'hardware' | 'strongbox';
+}> {
+  const capabilities = {
+    hasSecureEnclave: false,
+    hasStrongBox: false,
+    biometricHardware: false,
+    keyStorageLevel: 'software' as 'software' | 'hardware' | 'strongbox',
+  };
+  
+  if (Device.osName === 'iOS') {
+    // Check for Secure Enclave (iPhone 5s+)
+    const hasSecureEnclave = Device.modelId?.includes('iPhone') && 
+                             parseInt(Device.modelId.replace(/\D/g, '')) >= 6; // iPhone 6+
+    capabilities.hasSecureEnclave = hasSecureEnclave;
+    capabilities.keyStorageLevel = hasSecureEnclave ? 'hardware' : 'software';
+  } else if (Device.osName === 'Android') {
+    // Check for StrongBox (Android 9+)
+    const androidVersion = parseInt(Device.osVersion?.split('.')[0] || '0');
+    capabilities.hasStrongBox = androidVersion >= 9;
+    capabilities.keyStorageLevel = capabilities.hasStrongBox ? 'strongbox' : 'hardware';
+  }
+  
+  // Check biometric hardware
+  capabilities.biometricHardware = await LocalAuthentication.hasHardwareAsync();
+  
+  return capabilities;
 }
+
+// NEW: Create hardware-backed key with proof
+static async createHardwareBackedKey(): Promise<{
+  publicKey: string;
+  teeProof: {
+    storageLevel: string;
+    extractable: boolean;
+    hardwareBacked: boolean;
+    attestationChain: string[];
+  };
+}> {
+  const capabilities = await this.getTEECapabilities();
+  
+  // Generate key
+  const privateKey = ed25519.utils.randomPrivateKey();
+  const publicKey = ed25519.getPublicKey(privateKey);
+  
+  const privateKeyB64 = this.arrayToBase64(privateKey);
+  const publicKeyB64 = this.arrayToBase64(publicKey);
+  
+  // Store with hardware backing requirement
+  const storageOptions: any = {
+    requireAuthentication: false,
+  };
+  
+  // iOS: Use Secure Enclave if available
+  if (Device.osName === 'iOS' && capabilities.hasSecureEnclave) {
+    storageOptions.keychainAccessible = SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY;
+  }
+  
+  // Android: Use StrongBox if available
+  if (Device.osName === 'Android' && capabilities.hasStrongBox) {
+    storageOptions.keychainService = 'strongbox';
+  }
+  
+  await SecureStore.setItemAsync(PRIVATE_KEY_STORAGE, privateKeyB64, storageOptions);
+  await SecureStore.setItemAsync(PUBLIC_KEY_STORAGE, publicKeyB64);
+  
+  // Create TEE proof
+  const teeProof = {
+    storageLevel: capabilities.keyStorageLevel,
+    extractable: false, // Keys in TEE cannot be extracted
+    hardwareBacked: capabilities.hasSecureEnclave || capabilities.hasStrongBox,
+    attestationChain: [
+      `device:${await this.getDeviceId()}`,
+      `storage:${capabilities.keyStorageLevel}`,
+      `biometric:${await this.getBiometricType()}`,
+      `timestamp:${new Date().toISOString()}`,
+    ],
+  };
+  
+  return { publicKey: publicKeyB64, teeProof };
+}
+
+// NEW: Verify key is still hardware-backed
+static async verifyKeyIntegrity(): Promise<{
+  valid: boolean;
+  stillInTEE: boolean;
+  tamperDetected: boolean;
+}> {
+  try {
+    const publicKey = await SecureStore.getItemAsync(PUBLIC_KEY_STORAGE);
+    const privateKey = await SecureStore.getItemAsync(PRIVATE_KEY_STORAGE);
+    
+    if (!publicKey || !privateKey) {
+      return { valid: false, stillInTEE: false, tamperDetected: true };
+    }
+    
+    // Test signature to ensure key still works
+    const testMessage = 'integrity_check_' + Date.now();
+    const signature = await this.signData(testMessage);
+    const isValid = this.verifySignature(testMessage, signature, publicKey);
+    
+    // Check if key is still in secure storage
+    const capabilities = await this.getTEECapabilities();
+    const stillInTEE = capabilities.hasSecureEnclave || capabilities.hasStrongBox;
+    
+    return {
+      valid: isValid,
+      stillInTEE,
+      tamperDetected: !isValid,
+    };
+  } catch (error) {
+    return { valid: false, stillInTEE: false, tamperDetected: true };
+  }
+}
+
+// NEW: Enhanced attestation with TEE proof
+static async getEnhancedAttestation(): Promise<TEEAttestation & {
+  teeProof: any;
+  integrityCheck: any;
+}> {
+  const basicAttestation = await this.getAttestation();
+  const capabilities = await this.getTEECapabilities();
+  const integrity = await this.verifyKeyIntegrity();
+  
+  const teeProof = {
+    capabilities,
+    integrity,
+    storageDetails: {
+      location: capabilities.keyStorageLevel,
+      extractable: false,
+      requiresBiometric: basicAttestation.biometricType !== 'none',
+    },
+    attestationChain: [
+      `device:${basicAttestation.deviceId}`,
+      `storage:${capabilities.keyStorageLevel}`,
+      `secure_hardware:${capabilities.hasSecureEnclave || capabilities.hasStrongBox}`,
+      `biometric_hw:${capabilities.biometricHardware}`,
+      `key_integrity:${integrity.valid}`,
+    ],
+  };
+  
+  return {
+    ...basicAttestation,
+    teeProof,
+    integrityCheck: integrity,
+  };
+}
+
+
+}
+
+

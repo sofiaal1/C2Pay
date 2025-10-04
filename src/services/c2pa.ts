@@ -31,49 +31,109 @@ export class C2PAService {
   
   // Create manifest
   static async createManifest(data: {
-    payment: any;
-    behavioral: any;
-    passiveBio?: any;
-    activeBio?: any;
-  }): Promise<BehavioralC2PAManifest> {
-    
-    const attestation = await KeystoreService.getAttestation();
-    const deviceKey = await KeystoreService.getOrCreateDeviceKey();
-    
-    const manifest: BehavioralC2PAManifest = {
-      version: '1.0',
-      claim: {
-        payment: {
-          amount: data.payment.amount,
-          currency: 'USD',
-          merchant: data.payment.merchant,
-          orderId: data.payment.orderId,
-        },
-        behavioral: data.behavioral,
-        passiveBiometrics: data.passiveBio,
-        activeBiometric: data.activeBio,
-        device: {
-          model: attestation.deviceModel,
-          os: attestation.osVersion,
-          fingerprint: this.getDeviceFingerprint(),
-        },
-        timestamp: new Date().toISOString(),
+  payment: any;
+  behavioral: any;
+  passiveBio?: any;
+  activeBio?: any;
+}): Promise<BehavioralC2PAManifest> {
+  
+  // Use enhanced attestation instead of basic
+  const attestation = await KeystoreService.getEnhancedAttestation();
+  const deviceKey = await KeystoreService.getOrCreateDeviceKey();
+  
+  const manifest: BehavioralC2PAManifest = {
+    version: '1.0',
+    claim: {
+      payment: {
+        amount: data.payment.amount,
+        currency: 'USD',
+        merchant: data.payment.merchant,
+        orderId: data.payment.orderId,
       },
-      teeAttestation: attestation,
-      signature: '',
-      publicKey: deviceKey.publicKey,
-    };
+      behavioral: data.behavioral,
+      passiveBiometrics: data.passiveBio,
+      activeBiometric: data.activeBio,
+      device: {
+        model: attestation.deviceModel,
+        os: attestation.osVersion,
+        fingerprint: this.getDeviceFingerprint(),
+      },
+      timestamp: new Date().toISOString(),
+      
+      // NEW: Add TEE proof to claim
+      teeDetails: {
+        hardwareBacked: attestation.teeProof.capabilities.hasSecureEnclave || 
+                       attestation.teeProof.capabilities.hasStrongBox,
+        storageLevel: attestation.teeProof.capabilities.keyStorageLevel,
+        keyIntegrity: attestation.teeProof.integrity.valid,
+        biometricCapable: attestation.teeProof.capabilities.biometricHardware,
+        attestationChain: attestation.teeProof.attestationChain,
+      },
+    },
+    teeAttestation: attestation,
+    signature: '',
+    publicKey: deviceKey.publicKey,
+  };
+
+  // Sign with hardware-backed key
+  const manifestString = JSON.stringify({
+    claim: manifest.claim,
+    teeAttestation: manifest.teeAttestation,
+  });
+
+  manifest.signature = await KeystoreService.signData(manifestString);
+
+  return manifest;
+}
+
+// Moved out of createManifest
+static getDeviceFingerprint(): string {
+  // Simple device fingerprint
+  return 'device_fingerprint_' + Date.now();
+}
+
+static verifyManifestWithTEE(manifest: any): {
+  valid: boolean;
+  checks: any;
+  errors: string[];
+  teeStatus: any;
+} {
+  const basic = this.verifyManifest(manifest);
+  const errors = [...basic.errors];
+  
+  // Verify TEE claims
+  const teeChecks = {
+    hardwareBackedClaimed: manifest.claim.teeDetails?.hardwareBacked || false,
+    storageLevel: manifest.claim.teeDetails?.storageLevel || 'unknown',
+    keyIntegrityValid: manifest.claim.teeDetails?.keyIntegrity || false,
+    attestationChainValid: false,
+  };
+
+  if (manifest.teeAttestation?.teeProof?.attestationChain) {
+    const chain = manifest.teeAttestation.teeProof.attestationChain;
+    teeChecks.attestationChainValid = chain.length >= 4 && 
+                                      chain.every((c: string) => c.includes(':'));
     
-    // Sign manifest
-    const manifestString = JSON.stringify({
-      claim: manifest.claim,
-      teeAttestation: manifest.teeAttestation,
-    });
-    
-    manifest.signature = await KeystoreService.signData(manifestString);
-    
-    return manifest;
+    if (!teeChecks.attestationChainValid) {
+      errors.push('TEE attestation chain invalid');
+    }
+  } else {
+    errors.push('No TEE attestation chain found');
   }
+
+  if (teeChecks.hardwareBackedClaimed && teeChecks.storageLevel === 'software') {
+    errors.push('Claims hardware-backed but stored in software');
+  }
+  
+  return {
+    ...basic,
+    errors,
+    teeStatus: teeChecks,
+  };
+}
+
+// Removed duplicate verifyManifest stub implementation
+
   
   // Verify manifest
   static verifyManifest(manifest: BehavioralC2PAManifest): {
@@ -137,8 +197,4 @@ export class C2PAService {
     };
   }
   
-  private static getDeviceFingerprint(): string {
-    // Simple device fingerprint
-    return 'device_fingerprint_' + Date.now();
-  }
 }
