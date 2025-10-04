@@ -93,7 +93,7 @@ const handlePayment = async () => {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text variant="headlineMedium" style={styles.title}>
-        💳 Make Payment
+        Make Payment
       </Text>
 
       {/* Payment Details Card */}

@@ -125,7 +125,7 @@ export default function CheckoutScreen({ navigation }: any) {
           {
             text: 'Continue Shopping',
             onPress: () => {
-              navigation.navigate('Store');
+              navigation.navigate('Shop', {screen: 'Store'});
             },
           },
         ]
@@ -142,7 +142,7 @@ export default function CheckoutScreen({ navigation }: any) {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text variant="headlineMedium" style={styles.title}>
-        🔒 Secure Checkout
+        Secure Checkout
       </Text>
 
       {/* Order Summary */}

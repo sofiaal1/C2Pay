@@ -6,12 +6,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function HomeScreen({ navigation }: any) {
   const [deviceInfo, setDeviceInfo] = useState<any>(null);
-  const [learningStatus, setLearningStatus] = useState('');
   const [visitCount, setVisitCount] = useState(0);
 
   useEffect(() => {
     loadDeviceInfo();
-    loadLearningStatus();
   }, []);
 
   const loadDeviceInfo = async () => {
@@ -28,46 +26,18 @@ export default function HomeScreen({ navigation }: any) {
     }
   };
 
-  const loadLearningStatus = async () => {
-    try {
-      const count = await AsyncStorage.getItem('visit_count');
-      const visitNum = count ? parseInt(count) : 0;
-      setVisitCount(visitNum);
-      
-      if (visitNum === 0) {
-        setLearningStatus('🆕 First time - We\'re learning your patterns');
-      } else if (visitNum < 3) {
-        setLearningStatus(`📚 Learning mode (visit ${visitNum}/3)`);
-      } else if (visitNum < 6) {
-        setLearningStatus(`🎓 Building confidence (visit ${visitNum})`);
-      } else {
-        setLearningStatus('✅ Profile established - Full protection active');
-      }
-    } catch (error) {
-      setLearningStatus('Unknown');
-    }
-  };
-
+  
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text variant="headlineLarge" style={styles.title}>
-        🔐 PhotoProof MFA
+        C2Pay
       </Text>
       
       <Text variant="bodyLarge" style={styles.subtitle}>
-        Behavioral Biometrics + C2PA + TEE
+        A Payment Simulation for the C2Pay SDK
       </Text>
 
-      {/* Learning Status Card */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <Text variant="titleMedium">Learning Status</Text>
-          <Text style={styles.status}>{learningStatus}</Text>
-          <Text variant="bodySmall" style={styles.hint}>
-            Visits: {visitCount}
-          </Text>
-        </Card.Content>
-      </Card>
+      
 
       {/* Device Security Card */}
       {deviceInfo && (
@@ -78,7 +48,7 @@ export default function HomeScreen({ navigation }: any) {
             <View style={styles.statusRow}>
               <Text>Secure Enclave:</Text>
               <Chip mode="flat" style={styles.chip}>
-                {deviceInfo.capabilities.hasSecureEnclave ? '✅ Yes' : '❌ No'}
+                  {deviceInfo.capabilities.hasSecureEnclave ? '✅ Yes' : '❌ No'}
               </Chip>
             </View>
             
@@ -191,7 +161,12 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   chip: {
-    height: 28,
+    height: 40,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    minWidth: 80, 
+    alignItems: 'center',
+    textAlign: 'center',
   },
   actionButton: {
     marginTop: 10,

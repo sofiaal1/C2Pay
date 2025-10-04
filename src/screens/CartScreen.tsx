@@ -63,7 +63,7 @@ export default function CartScreen({ navigation }: any) {
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text variant="headlineMedium" style={styles.title}>
-          🛒 Shopping Cart
+          Shopping Cart
         </Text>
 
         {cartItems.map((item, index) => (

@@ -47,7 +47,7 @@ export default function VerifyScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text variant="headlineMedium" style={styles.title}>
-        🔍 Verify Transaction
+        Verify Transaction
       </Text>
 
       <Card style={styles.card}>

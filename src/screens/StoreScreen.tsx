@@ -43,14 +43,13 @@ export default function StoreScreen({ navigation }: any) {
     Alert.alert('Added to Cart', `${product.name} added to your cart`);
   };
 
-  const categories = ['All', 'Electronics', 'Gaming', 'Audio'];
 
   return (
     <View style={styles.container}>
       {/* Header with Cart */}
       <View style={styles.header}>
         <Text variant="headlineMedium" style={styles.title}>
-          🛍️ TechStore
+          Store
         </Text>
         <TouchableOpacity onPress={() => navigation.navigate('Shop', {screen: 'Cart'})}>
           <View>
@@ -70,24 +69,6 @@ export default function StoreScreen({ navigation }: any) {
         style={styles.searchBar}
       />
 
-      {/* Categories */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categories}>
-        {categories.map(cat => (
-          <Chip
-            key={cat}
-            mode={selectedCategory === cat ? 'flat' : 'outlined'}
-            selected={selectedCategory === cat}
-            onPress={() => {
-              setSelectedCategory(cat);
-              setSearchQuery('');
-              setTimeout(loadProducts, 0);
-            }}
-            style={styles.categoryChip}
-          >
-            {cat}
-          </Chip>
-        ))}
-      </ScrollView>
 
       {/* Products Grid */}
       <ScrollView contentContainerStyle={styles.productsContainer}>
@@ -153,13 +134,6 @@ const styles = StyleSheet.create({
   searchBar: {
     margin: 15,
     marginTop: 0,
-  },
-  categories: {
-    paddingHorizontal: 15,
-    marginBottom: 15,
-  },
-  categoryChip: {
-    marginRight: 8,
   },
   productsContainer: {
     padding: 15,

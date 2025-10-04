@@ -77,7 +77,7 @@ export default function DashboardScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text variant="headlineMedium" style={styles.title}>
-        📊 Analytics Dashboard
+        Analytics Dashboard
       </Text>
 
       {stats && (
