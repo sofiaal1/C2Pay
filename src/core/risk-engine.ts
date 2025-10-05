@@ -68,6 +68,8 @@ export class RiskEngine {
           promptMessage: `Authorize payment of $${params.amount} to ${params.merchant}`,
         });
         
+        console.log('Active biometric result:', activeBiometric);
+        
         if (!activeBiometric.verified) {
           // Try selfie as backup
           const selfieResult = await ActiveBiometricService.verifySelfie();
@@ -78,11 +80,41 @@ export class RiskEngine {
               confidence: selfieResult.confidence,
             };
           } else {
-            throw new Error('Biometric verification failed');
+            // Authentication failed - return declined payment
+            return {
+              approved: false,
+              manifest: await C2PAService.createManifest({
+                payment: params,
+                behavioral: {
+                  riskScore: totalRisk.totalRisk,
+                  keystroke: this.keystrokeTracker.getProfile(),
+                  session: this.sessionTracker.getPattern(),
+                },
+                passiveBio: this.passiveBioAnalyzer.analyzePassiveBiometrics(),
+                activeBio: null,
+              }),
+              riskAnalysis: totalRisk,
+              mfaTriggered,
+            };
           }
         }
       } else {
-        throw new Error('Biometric verification required but not available');
+        // No biometric available - decline payment
+        return {
+          approved: false,
+          manifest: await C2PAService.createManifest({
+            payment: params,
+            behavioral: {
+              riskScore: totalRisk.totalRisk,
+              keystroke: this.keystrokeTracker.getProfile(),
+              session: this.sessionTracker.getPattern(),
+            },
+            passiveBio: this.passiveBioAnalyzer.analyzePassiveBiometrics(),
+            activeBio: null,
+          }),
+          riskAnalysis: totalRisk,
+          mfaTriggered,
+        };
       }
     }
     

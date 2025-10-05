@@ -55,30 +55,40 @@ const handlePayment = async () => {
       JSON.stringify(paymentResult.manifest)
     );
 
-    // Save to payment history
-    const history = await AsyncStorage.getItem('payment_history');
-    const payments = history ? JSON.parse(history) : [];
-    payments.unshift({
-      manifest: paymentResult.manifest,
-      timestamp: new Date().toISOString(),
-      amount: parseFloat(amount),
-      merchant,
-    });
-    await AsyncStorage.setItem(
-      'payment_history', 
-      JSON.stringify(payments.slice(0, 50))
-    );
+    // Only save to payment history if approved
+    if (paymentResult.approved) {
+      const history = await AsyncStorage.getItem('payment_history');
+      const payments = history ? JSON.parse(history) : [];
+      payments.unshift({
+        manifest: paymentResult.manifest,
+        timestamp: new Date().toISOString(),
+        amount: parseFloat(amount),
+        merchant,
+      });
+      await AsyncStorage.setItem(
+        'payment_history', 
+        JSON.stringify(payments.slice(0, 50))
+      );
 
-    // Save profiles for learning
-    await riskEngine.saveProfiles();
+      // Save profiles for learning
+      await riskEngine.saveProfiles();
 
-    Alert.alert(
-      'Payment Authorized ✓',
-      `Amount: $${amount}\n` +
-      `Risk Score: ${paymentResult.riskAnalysis.totalRisk}%\n` +
-      `MFA: ${paymentResult.mfaTriggered ? 'Required & Verified' : 'Not needed'}\n` +
-      `Methods: ${paymentResult.riskAnalysis.authMethodsUsed.join(', ')}`
-    );
+      Alert.alert(
+        'Payment Authorized ✓',
+        `Amount: $${amount}\n` +
+        `Risk Score: ${paymentResult.riskAnalysis.totalRisk}%\n` +
+        `MFA: ${paymentResult.mfaTriggered ? 'Required & Verified' : 'Not needed'}\n` +
+        `Methods: ${paymentResult.riskAnalysis.authMethodsUsed.join(', ')}`
+      );
+    } else {
+      Alert.alert(
+        'Payment Declined ❌',
+        `Amount: $${amount}\n` +
+        `Risk Score: ${paymentResult.riskAnalysis.totalRisk}%\n` +
+        `Reason: ${paymentResult.mfaTriggered ? 'Biometric verification failed' : 'High risk detected'}\n` +
+        `Methods: ${paymentResult.riskAnalysis.authMethodsUsed.join(', ')}`
+      );
+    }
 
     // Reset for next payment
     setOrderId('ORDER-' + Date.now());
