@@ -331,6 +331,10 @@ const styles = StyleSheet.create({
   statCard: {
     width: (screenWidth - 50) / 2,
     marginBottom: 10,
+    elevation: 0,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    overflow: 'hidden',
   },
   statLabel: {
     opacity: 0.7,
@@ -345,6 +349,10 @@ const styles = StyleSheet.create({
   },
   card: {
     marginBottom: 15,
+    elevation: 0,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    overflow: 'hidden',
   },
   methodRow: {
     flexDirection: 'row',
